@@ -3,15 +3,21 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, onBeforeMount } from "vue";
+import { defineComponent, onBeforeMount, watchEffect } from "vue";
 import { useAuthStore } from "./stores/authStore";
+import { useDataStore } from "./stores/dataStore";
 
 export default defineComponent({
     setup() {
         const authStore = useAuthStore();
+        const dataStore = useDataStore();
 
         onBeforeMount(() => {
             authStore.listenToAuthChange();
+        });
+
+        watchEffect(() => {
+            dataStore.listenToData(authStore.user);
         });
 
         return {};

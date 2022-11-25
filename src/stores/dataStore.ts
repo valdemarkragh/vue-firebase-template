@@ -11,21 +11,28 @@ import {
     deleteDoc,
     updateDoc,
 } from "firebase/firestore";
+import { Unsubscribe } from "firebase/auth";
 
 const dataStoreRef = collection(db, "dataStore");
 
 interface IData {
-    userId: string;
+    docId: string;
     title: string;
 }
 
+interface IState {
+    data: IData[];
+    loading: boolean;
+    unSubscriber: Unsubscribe | null;
+}
+
 export const useDataStore = defineStore("dataStore", {
-    state: () => ({
-        data: [] as IData[],
-        error: null,
-        loading: true,
-        listeningToData: false,
-    }),
+    state: () =>
+        ({
+            data: [] as IData[],
+            loading: false,
+            unSubscriber: null,
+        } as IState),
     actions: {
         async addData(title: string) {
             const authStore = useAuthStore();
@@ -43,37 +50,29 @@ export const useDataStore = defineStore("dataStore", {
                 title,
             });
         },
-        async listenToData() {
-            const authStore = useAuthStore();
+        async listenToData(user: any) {
+            if (!user && this.unSubscriber != null) {
+                this.unSubscriber();
+            }
+
+            if (!user) return;
+
+            this.loading = true;
 
             const listQuery = query(
                 dataStoreRef,
-                where("userId", "==", authStore.user.uid)
+                where("userId", "==", user.uid)
             );
 
-            onSnapshot(listQuery, (querySnapshot) => {
+            this.unSubscriber = onSnapshot(listQuery, (querySnapshot) => {
+                this.data = [];
+
                 querySnapshot.forEach((doc) => {
-                    console.log(doc);
+                    const { title } = doc.data() as IData;
+                    this.data.push({ title, docId: doc.id });
                 });
-                // querySnapshot.forEach((doc) => {
-                //     const { title, todos } = doc.data() as IData[];
-                //     this.lists.push({
-                //         docId: doc.id,
-                //         title,
-                //         todos,
-                //         activeTodos: todos.filter((todo) => !todo.completed)
-                //             .length,
-                //     });
-                // });
-
-                // if (!this.currList) return;
-
-                // this.currList = this.lists.find(
-                //     (list) => list.docId == this.currList.docId
-                // ) as TodoListType;
             });
 
-            this.listeningToData = true;
             this.loading = false;
         },
     },
