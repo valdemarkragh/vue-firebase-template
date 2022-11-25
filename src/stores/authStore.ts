@@ -45,10 +45,10 @@ export const useAuthStore = defineStore("authStore", {
             this.user = auth.currentUser;
             this.error = null;
         },
-        async loginWithGoogle() {
+        async loginWithGoogle(callbackUrl: string = "/") {
             const googleProvider = new GoogleAuthProvider();
             await signInWithPopup(auth, googleProvider);
-            router.push("/");
+            router.push(callbackUrl);
         },
         async logout() {
             await signOut(auth);
